@@ -7,6 +7,16 @@ export const environment = {
   appName: 'Ponsai',
   version: '2.0.0',
   // Google Maps API key for shipping distance calculation
-  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY_HERE'
+  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY_HERE',
+  firebase: {
+    apiKey: 'AIzaSyA-LPHndNnjUYNHXLxft-2kv3Uh-VfzgyY',
+    authDomain: 'finalapp-c65a2.firebaseapp.com',
+    databaseURL: 'https://finalapp-c65a2-default-rtdb.firebaseio.com',
+    projectId: 'finalapp-c65a2',
+    storageBucket: 'finalapp-c65a2.firebasestorage.app',
+    messagingSenderId: '14500134731',
+    appId: '1:14500134731:web:ef81ef094014e98910b2ce',
+    measurementId: 'G-GN90S76TXY'
+  }
 };
 

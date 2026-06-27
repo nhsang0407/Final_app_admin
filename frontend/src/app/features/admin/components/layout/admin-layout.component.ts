@@ -5,9 +5,10 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { LanguageSwitcherComponent } from '@core/components/language-switcher/language-switcher.component';
-import { AuthService } from '@core/services/auth.service';
+import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminService } from '../../services/admin.service';
 import { environment } from '@environments/environment';
-import { AuditLog, PaginatedResponse } from '../../models/admin.models';
+import { AuditLog } from '../../models/admin.models';
 
 interface AdminNotification {
   id: string;
@@ -1024,14 +1025,12 @@ interface AdminNotification {
   `]
 })
 export class AdminLayoutComponent {
-  private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
-  private readonly apiUrl = `${environment.apiUrl}/admin`;
   private readonly maxNotifications = 8;
   private readonly readStorageKey = 'admin-read-notification-ids';
 
   readonly projectName = 'PONSAI';
-  readonly currentUser$ = this.authService.currentUser$;
+  readonly currentUser$ = this.adminAuthService.currentUser$;
   readonly isSidebarCollapsed = signal(false);
   readonly isDarkMode = signal(false);
   readonly showNotifications = signal(false);
@@ -1047,7 +1046,8 @@ export class AdminLayoutComponent {
 
   constructor(
     private router: Router,
-    private authService: AuthService
+    private adminAuthService: AdminAuthService,
+    private adminService: AdminService
   ) {
     this.initializeTheme();
     this.initializeReadNotificationIds();
@@ -1089,11 +1089,7 @@ export class AdminLayoutComponent {
     this.isLoadingNotifications.set(true);
     this.notificationError.set(null);
 
-    const params = new HttpParams()
-      .set('page', '1')
-      .set('limit', this.maxNotifications.toString());
-
-    this.http.get<PaginatedResponse<AuditLog>>(`${this.apiUrl}/audit-logs`, { params })
+    this.adminService.loadAuditLogs({ page: 1, limit: this.maxNotifications })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
@@ -1103,7 +1099,7 @@ export class AdminLayoutComponent {
           this.isLoadingNotifications.set(false);
         },
         error: () => {
-          this.notificationError.set('Không tải được thông báo từ backend.');
+          this.notificationError.set('Không tải được thông báo từ Firebase.');
           this.isLoadingNotifications.set(false);
         }
       });

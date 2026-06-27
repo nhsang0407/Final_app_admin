@@ -3,6 +3,10 @@ import { adminGuard } from './guards/admin.guard';
 
 export const adminRoutes: Routes = [
   {
+    path: 'login',
+    loadComponent: () => import('./components/auth/admin-login.component').then(m => m.AdminLoginComponent)
+  },
+  {
     path: '',
     canActivate: [adminGuard],
     loadComponent: () => import('./components/layout/admin-layout.component').then(m => m.AdminLayoutComponent),
