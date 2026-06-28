@@ -407,87 +407,114 @@ export class AdminService {
     };
   }
 
+  private processStats(
+    products: AdminProduct[],
+    categories: AdminCategory[],
+    orders: AdminOrder[],
+    users: AdminUser[],
+    promotions: AdminPromotion[],
+    auditLogs: AuditLog[],
+    settings: any,
+    dateRange?: { startDate?: string; endDate?: string }
+  ): DashboardStats {
+    const normalizedOrders = orders.map(order => this.normalizeOrder(order));
+    const normalizedProducts = products.map(product => this.normalizeProduct(product));
+    const normalizedCategories = categories.map(category => this.normalizeCategory(category));
+    const normalizedUsers = users.map(user => this.normalizeUser(user));
+
+    const filteredOrders = this.filterByDate(normalizedOrders, dateRange);
+    const revenueOrders = filteredOrders.filter(order => !['failed', 'refunded'].includes(order.paymentStatus));
+    
+    const topProductsMap = new Map<string, { name: string; totalSold: number; price: number; primaryImage?: string }>();
+    const topRevenueMap = new Map<string, { name: string; totalRevenue: number }>();
+    const heatmapMap = new Map<string, number>();
+    const dailyRevenueMap = new Map<string, { total: number; count: number }>();
+    const monthlyRevenueMap = new Map<string, { total: number; count: number }>();
+    const ordersByStatusMap = new Map<string, number>();
+
+    for (const order of filteredOrders) {
+      const createdAt = new Date(order.createdAt || order.updatedAt);
+      const normalizedStatus = this.normalizeOrderStatus(order.status);
+      ordersByStatusMap.set(normalizedStatus, (ordersByStatusMap.get(normalizedStatus) || 0) + 1);
+      
+      const heatKey = `${createdAt.getDay() + 1}-${Math.floor(createdAt.getHours() / 2)}`;
+      heatmapMap.set(heatKey, (heatmapMap.get(heatKey) || 0) + 1);
+
+      if (!['failed', 'refunded'].includes(order.paymentStatus)) {
+        const dayKey = `${createdAt.getFullYear()}-${createdAt.getMonth() + 1}-${createdAt.getDate()}`;
+        const monthKey = `${createdAt.getFullYear()}-${createdAt.getMonth() + 1}`;
+        
+        const daily = dailyRevenueMap.get(dayKey) || { total: 0, count: 0 };
+        daily.total += Number(order.totalAmount || 0);
+        daily.count += 1;
+        dailyRevenueMap.set(dayKey, daily);
+        
+        const monthly = monthlyRevenueMap.get(monthKey) || { total: 0, count: 0 };
+        monthly.total += Number(order.totalAmount || 0);
+        monthly.count += 1;
+        monthlyRevenueMap.set(monthKey, monthly);
+      }
+
+      for (const item of order.items || []) {
+        const productId = typeof item.product === 'string' ? item.product : item.product?._id;
+        const productName = typeof item.product === 'string' ? item.product : item.product?.name || 'Sản phẩm';
+        const productPrice = Number(item.price || item.product?.price || 0);
+        const quantity = Number(item.quantity || 0);
+        
+        if (productId) {
+          const sold = topProductsMap.get(productId) || { name: productName, totalSold: 0, price: productPrice, primaryImage: item.product?.primaryImage };
+          sold.totalSold += quantity;
+          topProductsMap.set(productId, sold);
+          
+          const revenue = topRevenueMap.get(productId) || { name: productName, totalRevenue: 0 };
+          revenue.totalRevenue += productPrice * quantity;
+          topRevenueMap.set(productId, revenue);
+        }
+      }
+    }
+
+    const lowStockThreshold = settings?.lowStockThreshold ?? this._lowStockThreshold();
+
+    return {
+      overview: {
+        totalProducts: normalizedProducts.length,
+        totalCategories: normalizedCategories.filter(category => category.active !== false).length,
+        totalOrders: filteredOrders.length,
+        totalUsers: normalizedUsers.filter(user => user.role === 'user').length,
+        totalRevenue: revenueOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0),
+        pendingOrders: filteredOrders.filter(order => ['pending', 'pending_manual_payment'].includes(order.status)).length,
+        lowStockProducts: normalizedProducts.filter(product => Number(product.stockQuantity || 0) <= lowStockThreshold).length
+      },
+      recentOrders: [...filteredOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10),
+      topProducts: [...topProductsMap.entries()].sort((a, b) => b[1].totalSold - a[1].totalSold).slice(0, 5).map(([id, item]) => ({ _id: id, ...item })),
+      topProductsByRevenue: [...topRevenueMap.entries()].sort((a, b) => b[1].totalRevenue - a[1].totalRevenue).slice(0, 5).map(([id, item]) => ({ _id: id, ...item })),
+      heatmapData: [...heatmapMap.entries()].map(([key, count]) => { const [day, hourInterval] = key.split('-').map(Number); return { _id: { day, hourInterval }, count }; }),
+      ordersByStatus: Object.fromEntries(ordersByStatusMap.entries()),
+      dailyRevenue: [...dailyRevenueMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([key, value]) => { const [year, month, day] = key.split('-').map(Number); return { _id: { year, month, day }, ...value }; }),
+      monthlyRevenue: [...monthlyRevenueMap.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12).map(([key, value]) => { const [year, month] = key.split('-').map(Number); return { _id: { year, month }, ...value }; })
+    };
+  }
+
   loadDashboardStats(dateRange?: { startDate?: string; endDate?: string }): Observable<{ success: boolean; data: DashboardStats }> {
     this.setLoading(true);
     this.setError(null);
 
     return forkJoin({
-      products: this.loadCollection<AdminProduct>('products').pipe(map(items => items.map(item => this.normalizeProduct(item)))),
-      categories: this.loadCollection<AdminCategory>('categories').pipe(map(items => items.map(item => this.normalizeCategory(item)))),
-      orders: this.loadCollection<AdminOrder>('orders').pipe(map(items => items.map(item => this.normalizeOrder(item)))),
-      users: this.loadCollection<AdminUser>('users').pipe(map(items => items.map(item => this.normalizeUser(item)))),
-      promotions: this.loadCollection<AdminPromotion>('promotions').pipe(map(items => items.map(item => this.normalizePromotion(item)))),
+      products: this.loadCollection<AdminProduct>('products'),
+      categories: this.loadCollection<AdminCategory>('categories'),
+      orders: this.loadCollection<AdminOrder>('orders'),
+      users: this.loadCollection<AdminUser>('users'),
+      promotions: this.loadCollection<AdminPromotion>('promotions'),
       auditLogs: this.loadCollection<AuditLog>('auditLogs'),
       settings: this.loadObject<any>(this.path('settings'), {})
     }).pipe(
-      map(({ products, categories, orders, users, promotions: _promotions, auditLogs: _auditLogs, settings }) => {
-        const filteredOrders = this.filterByDate(orders.map(order => this.normalizeOrder(order)), dateRange);
-        const filteredProducts = this.filterByDate(products.map(product => this.normalizeProduct(product)), dateRange);
-        const revenueOrders = filteredOrders.filter(order => !['failed', 'refunded'].includes(order.paymentStatus));
-        const topProductsMap = new Map<string, { name: string; totalSold: number; price: number; primaryImage?: string }>();
-        const topRevenueMap = new Map<string, { name: string; totalRevenue: number }>();
-        const heatmapMap = new Map<string, number>();
-        const dailyRevenueMap = new Map<string, { total: number; count: number }>();
-        const monthlyRevenueMap = new Map<string, { total: number; count: number }>();
-        const ordersByStatusMap = new Map<string, number>();
-
-        for (const order of filteredOrders) {
-          const createdAt = new Date(order.createdAt || order.updatedAt);
-          const normalizedStatus = this.normalizeOrderStatus(order.status);
-          ordersByStatusMap.set(normalizedStatus, (ordersByStatusMap.get(normalizedStatus) || 0) + 1);
-          const heatKey = `${createdAt.getDay() + 1}-${Math.floor(createdAt.getHours() / 2)}`;
-          heatmapMap.set(heatKey, (heatmapMap.get(heatKey) || 0) + 1);
-
-          if (!['failed', 'refunded'].includes(order.paymentStatus)) {
-            const dayKey = `${createdAt.getFullYear()}-${createdAt.getMonth() + 1}-${createdAt.getDate()}`;
-            const monthKey = `${createdAt.getFullYear()}-${createdAt.getMonth() + 1}`;
-            const daily = dailyRevenueMap.get(dayKey) || { total: 0, count: 0 };
-            daily.total += Number(order.totalAmount || 0);
-            daily.count += 1;
-            dailyRevenueMap.set(dayKey, daily);
-            const monthly = monthlyRevenueMap.get(monthKey) || { total: 0, count: 0 };
-            monthly.total += Number(order.totalAmount || 0);
-            monthly.count += 1;
-            monthlyRevenueMap.set(monthKey, monthly);
-          }
-
-          for (const item of order.items || []) {
-            const productId = typeof item.product === 'string' ? item.product : item.product?._id;
-            const productName = typeof item.product === 'string' ? item.product : item.product?.name || 'Sản phẩm';
-            const productPrice = Number(item.price || item.product?.price || 0);
-            const quantity = Number(item.quantity || 0);
-            const sold = topProductsMap.get(productId) || { name: productName, totalSold: 0, price: productPrice, primaryImage: item.product?.primaryImage };
-            sold.totalSold += quantity;
-            topProductsMap.set(productId, sold);
-            const revenue = topRevenueMap.get(productId) || { name: productName, totalRevenue: 0 };
-            revenue.totalRevenue += productPrice * quantity;
-            topRevenueMap.set(productId, revenue);
-          }
-        }
-
-        const lowStockThreshold = settings.lowStockThreshold ?? this._lowStockThreshold();
+      map(({ products, categories, orders, users, promotions, auditLogs, settings }) => {
+        const stats = this.processStats(products, categories, orders, users, promotions, auditLogs, settings, dateRange);
+        
+        const lowStockThreshold = settings?.lowStockThreshold ?? this._lowStockThreshold();
         this._lowStockThreshold.set(lowStockThreshold);
-        if (settings.currency) this._currency.set(settings.currency);
-        if (settings.exchangeRates) this._exchangeRates.set(settings.exchangeRates);
-
-        const stats: DashboardStats = {
-          overview: {
-            totalProducts: filteredProducts.length,
-            totalCategories: categories.filter(category => category.active !== false).length,
-            totalOrders: filteredOrders.length,
-            totalUsers: users.filter(user => user.role === 'user').length,
-            totalRevenue: revenueOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0),
-            pendingOrders: filteredOrders.filter(order => ['pending', 'pending_manual_payment'].includes(order.status)).length,
-            lowStockProducts: filteredProducts.filter(product => Number(product.stockQuantity || 0) <= lowStockThreshold).length
-          },
-          recentOrders: [...filteredOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10),
-          topProducts: [...topProductsMap.entries()].sort((a, b) => b[1].totalSold - a[1].totalSold).slice(0, 5).map(([id, item]) => ({ _id: id, ...item })),
-          topProductsByRevenue: [...topRevenueMap.entries()].sort((a, b) => b[1].totalRevenue - a[1].totalRevenue).slice(0, 5).map(([id, item]) => ({ _id: id, ...item })),
-          heatmapData: [...heatmapMap.entries()].map(([key, count]) => { const [day, hourInterval] = key.split('-').map(Number); return { _id: { day, hourInterval }, count }; }),
-          ordersByStatus: Object.fromEntries(ordersByStatusMap.entries()),
-          dailyRevenue: [...dailyRevenueMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([key, value]) => { const [year, month, day] = key.split('-').map(Number); return { _id: { year, month, day }, ...value }; }),
-          monthlyRevenue: [...monthlyRevenueMap.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12).map(([key, value]) => { const [year, month] = key.split('-').map(Number); return { _id: { year, month }, ...value }; })
-        };
+        if (settings?.currency) this._currency.set(settings.currency);
+        if (settings?.exchangeRates) this._exchangeRates.set(settings.exchangeRates);
 
         this._dashboardStats.set(stats);
         this.setLoading(false);
@@ -502,7 +529,23 @@ export class AdminService {
   }
 
   loadDashboardStatsWithoutSetting(dateRange?: { startDate?: string; endDate?: string }): Observable<{ success: boolean; data: DashboardStats }> {
-    return this.loadDashboardStats(dateRange);
+    return forkJoin({
+      products: this.loadCollection<AdminProduct>('products'),
+      categories: this.loadCollection<AdminCategory>('categories'),
+      orders: this.loadCollection<AdminOrder>('orders'),
+      users: this.loadCollection<AdminUser>('users'),
+      promotions: this.loadCollection<AdminPromotion>('promotions'),
+      auditLogs: this.loadCollection<AuditLog>('auditLogs'),
+      settings: this.loadObject<any>(this.path('settings'), {})
+    }).pipe(
+      map(({ products, categories, orders, users, promotions, auditLogs, settings }) => {
+        const stats = this.processStats(products, categories, orders, users, promotions, auditLogs, settings, dateRange);
+        return { success: true, data: stats };
+      }),
+      catchError(error => {
+        return throwError(() => error);
+      })
+    );
   }
 
   loadProducts(params?: { page?: number; limit?: number; search?: string; category?: string; inStock?: boolean; lowStock?: boolean; }): Observable<PaginatedResponse<AdminProduct>> {
