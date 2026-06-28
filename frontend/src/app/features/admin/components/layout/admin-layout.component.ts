@@ -94,18 +94,6 @@ interface AdminNotification {
 
           <div class="nav-section">
             <span class="nav-section-title">System</span>
-            <a routerLink="/admin/ml-analytics" routerLinkActive="active" class="nav-item">
-              <span class="nav-icon" aria-hidden="true">
-                <i class="bi bi-admin-analytics"></i>
-              </span>
-              {{ 'admin.mlAnalytics' | translate }}
-            </a>
-            <a routerLink="/admin/forecast" routerLinkActive="active" class="nav-item">
-              <span class="nav-icon" aria-hidden="true">
-                <i class="bi bi-admin-forecast"></i>
-              </span>
-              {{ 'admin.dashboardAnalytics' | translate }}
-            </a>
             <a routerLink="/admin/audit-logs" routerLinkActive="active" class="nav-item">
               <span class="nav-icon" aria-hidden="true">
                 <i class="bi bi-admin-audit"></i>
@@ -114,12 +102,6 @@ interface AdminNotification {
               @if (unreadNotificationsCount() > 0) {
                 <span class="nav-badge">{{ unreadNotificationsCount() }}</span>
               }
-            </a>
-            <a routerLink="/admin/settings" routerLinkActive="active" class="nav-item">
-              <span class="nav-icon" aria-hidden="true">
-                <i class="bi bi-admin-settings"></i>
-              </span>
-              {{ 'admin.settings' | translate }}
             </a>
           </div>
         </nav>

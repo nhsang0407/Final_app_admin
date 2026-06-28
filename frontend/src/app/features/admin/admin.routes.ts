@@ -50,18 +50,6 @@ export const adminRoutes: Routes = [
       {
         path: 'audit-logs',
         loadComponent: () => import('./components/audit-logs/audit-logs.component').then(m => m.AuditLogsComponent)
-      },
-      {
-        path: 'settings',
-        loadComponent: () => import('./components/settings/settings.component').then(m => m.SettingsComponent)
-      },
-      {
-        path: 'ml-analytics',
-        loadComponent: () => import('./components/analytics/analytics-ml.component').then(m => m.AnalyticsMlComponent)
-      },
-      {
-        path: 'forecast',
-        loadComponent: () => import('./components/analytics/analytics-forecast.component').then(m => m.AnalyticsForecastComponent)
       }
     ]
   }
