@@ -853,7 +853,7 @@ Sort Code: ${details.bankDetails.sortCode}
 Account Number: ${details.bankDetails.accountNumber}
 
 PAYMENT DETAILS:
-Amount: £${details.amount.toFixed(2)} ${details.currency}
+Amount: ${details.amount.toFixed(2)} VND
 Payment Reference: ${details.reference}
 
 IMPORTANT: Include the payment reference "${details.reference}" in your transfer!

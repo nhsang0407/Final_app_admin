@@ -102,7 +102,7 @@ import { AdminCategory, ProductFormData } from '../../models/admin.models';
                         class="form-control"
                         min="0"
                         [class.error]="isFieldInvalid('price')">
-                      <span class="suffix">£</span>
+                      <span class="suffix">VND</span>
                     </div>
                     @if (isFieldInvalid('price')) {
                       <span class="error-message">Giá bán là bắt buộc</span>
@@ -118,7 +118,7 @@ import { AdminCategory, ProductFormData } from '../../models/admin.models';
                         formControlName="originalPrice"
                         class="form-control"
                         min="0">
-                      <span class="suffix">£</span>
+                      <span class="suffix">VND</span>
                     </div>
                   </div>
                 </div>

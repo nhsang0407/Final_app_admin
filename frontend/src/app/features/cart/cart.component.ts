@@ -621,17 +621,20 @@ export class CartComponent implements OnInit {
     const currencySymbols: { [key: string]: string } = {
       'USD': '$',
       'EUR': '€',
-      'GBP': '£',
+      'GBP': 'VND',
       'JPY': '¥',
-      'VND': '₫'
+      'VND': 'VND'
     };
     
-    const symbol = currency ? (currencySymbols[currency] || currency + ' ') : '£';
+    const symbol = currency ? (currencySymbols[currency] || currency + ' ') : 'VND';
     
-    // For VND, don't show decimal places
-    if (currency === 'VND') {
-      const formattedPrice = Math.round(price).toLocaleString('vi-VN');
-      return `${formattedPrice}${symbol}`;
+    // For VND or GBP formatted as VND
+    if (currency === 'VND' || symbol === 'VND') {
+      const formattedPrice = price.toLocaleString('en-GB', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      return `${formattedPrice} VND`;
     }
     
     const formattedPrice = price.toLocaleString('en-GB', {

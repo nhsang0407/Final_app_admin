@@ -26,13 +26,11 @@ export class FormatCurrencyPipe implements PipeTransform {
 
     switch (currency) {
       case 'GBP':
-        return `£${amount.toFixed(2)}`;
+      case 'VND':
+        return `${amount.toFixed(2)} VND`;
       
       case 'USD':
         return `$${amount.toFixed(2)}`;
-      
-      case 'VND':
-        return `${Math.round(amount).toLocaleString('vi-VN')}₫`;
       
       default:
         return `${amount.toFixed(2)} ${currency}`;

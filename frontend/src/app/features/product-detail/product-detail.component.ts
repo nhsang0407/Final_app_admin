@@ -1120,18 +1120,22 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     const currencySymbols: { [key: string]: string } = {
       'USD': '$',
       'EUR': '€',
-      'GBP': '£',
+      'GBP': 'VND',
       'JPY': '¥',
-      'VND': '₫'
+      'VND': 'VND'
     };
     
-    const symbol = currency ? (currencySymbols[currency] || currency + ' ') : '£';
+    const symbol = currency ? (currencySymbols[currency] || currency + ' ') : 'VND';
     
     // Format with proper thousands separator
     const formattedPrice = price.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+    
+    if (symbol === 'VND') {
+      return `${formattedPrice} VND`;
+    }
     
     return `${symbol}${formattedPrice}`;
   }

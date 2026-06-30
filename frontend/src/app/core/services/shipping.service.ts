@@ -193,11 +193,11 @@ export class ShippingService {
     // Check if domestic or international
     if (this.isVietnam(countryLower)) {
       if (fee === this.RATES.hcmcOther) {
-        return `Phí vận chuyển: £${fee.toFixed(2)} (TP. Hồ Chí Minh)`;
+        return `Phí vận chuyển: ${fee.toFixed(2)} VND (TP. Hồ Chí Minh)`;
       }
-      return `Phí vận chuyển: £${fee.toFixed(2)} (Tỉnh khác)`;
+      return `Phí vận chuyển: ${fee.toFixed(2)} VND (Tỉnh khác)`;
     } else {
-      return `Phí vận chuyển quốc tế: £${fee.toFixed(2)} (${this.getCountryName(country)})`;
+      return `Phí vận chuyển quốc tế: ${fee.toFixed(2)} VND (${this.getCountryName(country)})`;
     }
   }
 

@@ -502,17 +502,21 @@ export class ShopComponent implements OnInit {
     const currencySymbols: { [key: string]: string } = {
       'USD': '$',
       'EUR': '€',
-      'GBP': '£',
+      'GBP': 'VND',
       'JPY': '¥',
-      'VND': '₫'
+      'VND': 'VND'
     };
     
-    const symbol = currency ? (currencySymbols[currency] || currency + ' ') : '£';
+    const symbol = currency ? (currencySymbols[currency] || currency + ' ') : 'VND';
     
     const formattedPrice = price.toLocaleString('en-GB', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+    
+    if (symbol === 'VND') {
+      return `${formattedPrice} VND`;
+    }
     
     return `${symbol}${formattedPrice}`;
   }

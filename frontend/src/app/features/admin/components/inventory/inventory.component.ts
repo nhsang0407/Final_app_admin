@@ -1716,10 +1716,10 @@ export class InventoryComponent implements OnInit {
         'Tên sản phẩm': p.name,
         'SKU': p.sku || 'N/A',
         'Danh mục': categoryName,
-        'Giá bán (£)': p.price,
+        'Giá bán (VND)': p.price,
         'Tồn kho': p.stockQuantity,
         'Trạng thái': status,
-        'Giá trị (£)': value
+        'Giá trị (VND)': value
       };
     });
     
@@ -1739,10 +1739,7 @@ export class InventoryComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount);
+    return `${amount.toFixed(2)} VND`;
   }
 }
 

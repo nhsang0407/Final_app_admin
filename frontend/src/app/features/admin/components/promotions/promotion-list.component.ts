@@ -923,9 +923,9 @@ export class PromotionListComponent implements OnInit {
     const currency = this.adminService.currency().toUpperCase();
     switch(currency) {
       case 'USD': return '$';
-      case 'VND': return '₫';
+      case 'VND': return 'VND';
       case 'GBP':
-      default: return '£';
+      default: return 'VND';
     }
   });
 
@@ -1149,10 +1149,7 @@ export class PromotionListComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount);
+    return `${amount.toFixed(2)} VND`;
   }
 
   formatDate(dateString: string): string {

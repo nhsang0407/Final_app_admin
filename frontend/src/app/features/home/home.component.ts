@@ -672,16 +672,20 @@ export class HomeComponent implements OnInit {
     const currencySymbols: { [key: string]: string } = {
       USD: '$',
       EUR: '€',
-      GBP: '£',
+      GBP: 'VND',
       JPY: '¥',
-      VND: '₫'
+      VND: 'VND'
     };
 
-    const symbol = currency ? (currencySymbols[currency] || `${currency} `) : '£';
+    const symbol = currency ? (currencySymbols[currency] || `${currency} `) : 'VND';
     const formattedPrice = price.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+
+    if (symbol === 'VND') {
+      return `${formattedPrice} VND`;
+    }
 
     return `${symbol}${formattedPrice}`;
   }

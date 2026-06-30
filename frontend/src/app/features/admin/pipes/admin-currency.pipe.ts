@@ -44,7 +44,8 @@ export class AdminCurrencyPipe implements PipeTransform {
         convertedPrice = priceGBP * rates.gbp_to_usd;
         break;
       case 'VND':
-        convertedPrice = priceGBP * rates.gbp_to_vnd;
+        // Only change unit, no conversion
+        convertedPrice = priceGBP;
         break;
       case 'GBP':
       default:
@@ -63,14 +64,11 @@ export class AdminCurrencyPipe implements PipeTransform {
 
     switch (currencyUpper) {
       case 'GBP':
-        return `£${amount.toFixed(2)}`;
+      case 'VND':
+        return `${amount.toFixed(2)} VND`;
       
       case 'USD':
         return `$${amount.toFixed(2)}`;
-      
-      case 'VND':
-        // VND doesn't use decimals
-        return `${Math.round(amount).toLocaleString('vi-VN')}₫`;
       
       default:
         return `${amount.toFixed(2)} ${currencyUpper}`;
